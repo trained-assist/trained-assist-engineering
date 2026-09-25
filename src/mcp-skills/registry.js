@@ -1,7 +1,8 @@
 'use strict';
 
 const prepare = require('./tools/10-prepare-task');
-const tools = [prepare];
+const workspace = require('./tools/20-workspace');
+const tools = [prepare, ...workspace];
 
 function listTools() {
   return tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
