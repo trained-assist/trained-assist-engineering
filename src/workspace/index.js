@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = require('./workspace');
+module.exports = { ...require('./workspace'), ...require('./for-task') };

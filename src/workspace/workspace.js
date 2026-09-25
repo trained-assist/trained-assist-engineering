@@ -116,7 +116,11 @@ function layoutFor(b, workspaceId) {
     workspaceDir,
     codePath: path.join(workspaceDir, 'code'),
     runtimePath: path.join(workspaceDir, 'runtime'),
-    branch: `eng/${workspaceId}`,
+    // Human-readable, not the opaque workspaceId hash: a session (or a human
+    // skimming `git branch`/the PR list) must be able to tell whose task this
+    // is by the name alone. Uniqueness still comes from git itself refusing a
+    // duplicate branch (BRANCH_COLLISION below), not from this being a hash.
+    branch: `eng/${sanitizeSegment(b.principal)}-${sanitizeSegment(b.rootTaskId)}`,
   };
 }
 

@@ -16,6 +16,7 @@ const {
   ownerKeyOf,
 } = require('../src/workspace');
 const gitlib = require('../src/workspace/git');
+const { sanitizeSegment } = require('../src/workspace/paths');
 
 const cleanup = [];
 
@@ -66,6 +67,10 @@ function codePathFor(binding) {
   const ownerKey = ownerKeyOf(binding);
   const workspaceId = workspaceIdOf(ownerKey, binding.idempotencyKey);
   return path.join(binding.workspaceRoot, binding.principal, binding.repositoryId, workspaceId, 'code');
+}
+
+function branchFor(binding) {
+  return `eng/${sanitizeSegment(binding.principal)}-${sanitizeSegment(binding.rootTaskId)}`;
 }
 
 function commitChange(codePath, name = 'change.txt') {
@@ -170,8 +175,7 @@ test('branch collision is explicit', () => {
   const source = makeSourceRepo();
   const root = tmp('eng-ws-');
   const binding = bindingFor(source, root);
-  const workspaceId = workspaceIdOf(ownerKeyOf(binding), binding.idempotencyKey);
-  runGit(source.dir, ['branch', `eng/${workspaceId}`, source.sha]);
+  runGit(source.dir, ['branch', branchFor(binding), source.sha]);
 
   expectCode(() => spawnWorkspace(binding), 'BRANCH_COLLISION');
 });
@@ -225,7 +229,7 @@ test('crash after worktree creation before metadata is recovered without duplica
   assert.equal(result.status, 'code_ready');
   assert.equal(result.codePath, codePath);
   assert.equal(gitlib.worktreeList(source.dir).filter((w) => w.path === codePath).length, 1);
-  assert.equal(runGit(source.dir, ['branch', '--list', `eng/${result.workspaceId}`]).trim().split('\n').length, 1);
+  assert.equal(runGit(source.dir, ['branch', '--list', branchFor(binding)]).trim().split('\n').length, 1);
 });
 
 test('crash after metadata write before finalize is recovered', () => {
@@ -294,7 +298,7 @@ test('release removes a clean workspace and its branch', () => {
   assert.equal(released.status, 'released');
   assert.equal(released.removed, true);
   assert.equal(fs.existsSync(spawned.codePath), false);
-  assert.equal(runGit(source.dir, ['branch', '--list', `eng/${spawned.workspaceId}`]).trim(), '');
+  assert.equal(runGit(source.dir, ['branch', '--list', branchFor(bindingFor(source, root))]).trim(), '');
 });
 
 test('release retains a dirty workspace', () => {
