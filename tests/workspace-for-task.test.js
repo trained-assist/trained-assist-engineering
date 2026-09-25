@@ -1,0 +1,127 @@
+'use strict';
+
+// PR2b/engineering_spawn_workspace minimal design (2026-09-25/26): a session
+// calls spawnWorkspaceForTask() mid-task with just {principal, repositoryUrl,
+// rootTaskId} — no idempotencyKey/hostId/sourceCheckout/baseRevision plumbing,
+// no pre-existing local clone required. This exercises exactly that: the
+// wrapper clones a bare "remote" itself, resolves the default branch, and
+// forks a readable-named worktree branch from it.
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
+const { spawnWorkspaceForTask, statusWorkspaceForTask, releaseWorkspaceForTask } = require('../src/workspace');
+const { WorkspaceError } = require('../src/workspace/workspace');
+
+const cleanup = [];
+test.after(() => {
+  for (const dir of cleanup) { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ } }
+});
+
+function tmp(prefix) {
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
+  cleanup.push(dir);
+  return dir;
+}
+
+function runGit(cwd, args) {
+  return execFileSync('git', args, { cwd, encoding: 'utf8' });
+}
+
+// A bare "remote" repo, cloned by ensureMirror() inside the wrapper — proves
+// the wrapper never requires a pre-existing local checkout from the caller.
+function makeRemote() {
+  const bare = tmp('eng-remote-');
+  runGit(bare, ['init', '--bare', '-q', '-b', 'main']);
+  const work = tmp('eng-remote-work-');
+  runGit(work, ['clone', '-q', bare, '.']);
+  fs.writeFileSync(path.join(work, 'README.md'), '# demo\n');
+  runGit(work, ['add', '.']);
+  runGit(work, ['config', 'user.email', 'test@example.com']);
+  runGit(work, ['config', 'user.name', 'Test']);
+  runGit(work, ['commit', '-qm', 'initial']);
+  runGit(work, ['push', '-q', 'origin', 'HEAD:main']);
+  return bare;
+}
+
+function env(overrides = {}) {
+  const workspaceRoot = tmp('eng-ws-');
+  const mirrorsRoot = tmp('eng-mirrors-');
+  return { workspaceRoot, mirrorsRoot, ...overrides };
+}
+
+test('spawnWorkspaceForTask resolves everything from principal/repositoryUrl/rootTaskId alone', () => {
+  const repositoryUrl = makeRemote();
+  const { workspaceRoot, mirrorsRoot } = env();
+
+  const result = spawnWorkspaceForTask({ principal: 'vova', repositoryUrl, rootTaskId: 'fix-forum-topics', workspaceRoot, mirrorsRoot });
+
+  assert.equal(result.status, 'code_ready');
+  assert.equal(result.branch, 'eng/vova-fix-forum-topics');
+  assert.ok(fs.existsSync(path.join(result.codePath, 'README.md')));
+  assert.equal(runGit(result.codePath, ['rev-parse', '--abbrev-ref', 'HEAD']).trim(), 'eng/vova-fix-forum-topics');
+});
+
+test('second call with the same rootTaskId reuses the same workspace (session resume)', () => {
+  const repositoryUrl = makeRemote();
+  const { workspaceRoot, mirrorsRoot } = env();
+  const opts = { principal: 'vova', repositoryUrl, rootTaskId: 'fix-forum-topics', workspaceRoot, mirrorsRoot };
+
+  const first = spawnWorkspaceForTask(opts);
+  const second = spawnWorkspaceForTask(opts);
+
+  assert.equal(first.codePath, second.codePath);
+  assert.equal(second.reused, true);
+});
+
+test('a branch already occupying the target name is an explicit collision, not a silent takeover', () => {
+  const repositoryUrl = makeRemote();
+  const { workspaceRoot, mirrorsRoot } = env();
+  const mirrorDir = path.join(mirrorsRoot, repositoryUrl.replace(/[^a-zA-Z0-9_.-]+/g, '_').replace(/\.git$/, ''));
+
+  // Prime the mirror clone (any task), then create the branch our next call
+  // will want, out of band — simulating stale/manual state, not our own
+  // owner-key bookkeeping.
+  spawnWorkspaceForTask({ principal: 'vova', repositoryUrl, rootTaskId: 'priming', workspaceRoot, mirrorsRoot });
+  runGit(mirrorDir, ['branch', 'eng/vova-fix-forum-topics']);
+
+  assert.throws(
+    () => spawnWorkspaceForTask({ principal: 'vova', repositoryUrl, rootTaskId: 'fix-forum-topics', workspaceRoot, mirrorsRoot }),
+    (e) => e instanceof WorkspaceError && e.code === 'BRANCH_COLLISION',
+  );
+});
+
+test('different rootTaskId, same principal+repo -> separate workspace, own branch', () => {
+  const repositoryUrl = makeRemote();
+  const { workspaceRoot, mirrorsRoot } = env();
+
+  const a = spawnWorkspaceForTask({ principal: 'vova', repositoryUrl, rootTaskId: 'fix-forum-topics', workspaceRoot, mirrorsRoot });
+  const b = spawnWorkspaceForTask({ principal: 'vova', repositoryUrl, rootTaskId: 'fix-other-bug', workspaceRoot, mirrorsRoot });
+
+  assert.notEqual(a.codePath, b.codePath);
+  assert.notEqual(a.branch, b.branch);
+});
+
+test('status/release round-trip through the same task fields', () => {
+  const repositoryUrl = makeRemote();
+  const { workspaceRoot, mirrorsRoot } = env();
+  const opts = { principal: 'vova', repositoryUrl, rootTaskId: 'fix-forum-topics', workspaceRoot, mirrorsRoot };
+
+  const spawned = spawnWorkspaceForTask(opts);
+  const status = statusWorkspaceForTask(opts);
+  assert.equal(status.status, 'code_ready');
+  assert.equal(status.codePath, spawned.codePath);
+
+  const released = releaseWorkspaceForTask({ ...opts, processesStopped: true });
+  assert.equal(released.status, 'released');
+  assert.equal(fs.existsSync(spawned.codePath), false);
+});
+
+test('missing principal/repositoryUrl/rootTaskId fails explicitly', () => {
+  assert.throws(() => spawnWorkspaceForTask({ repositoryUrl: 'x', rootTaskId: 'y' }), WorkspaceError);
+  assert.throws(() => spawnWorkspaceForTask({ principal: 'vova', rootTaskId: 'y' }), WorkspaceError);
+  assert.throws(() => spawnWorkspaceForTask({ principal: 'vova', repositoryUrl: 'x' }), WorkspaceError);
+});

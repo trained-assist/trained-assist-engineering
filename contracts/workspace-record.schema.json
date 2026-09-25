@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Engineering Workspace Record",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "workspaceId",
+    "repositoryId",
+    "rootTaskId",
+    "principal",
+    "hostId",
+    "workspaceProfile",
+    "engineeringRevision",
+    "baseRevision",
+    "branch",
+    "codePath",
+    "runtimePath",
+    "sourceCheckout",
+    "operationKey",
+    "ownerKey",
+    "leaseGeneration",
+    "status",
+    "readiness",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "number", "const": 1 },
+    "workspaceId": { "type": "string" },
+    "repositoryId": { "type": "string" },
+    "rootTaskId": { "type": "string" },
+    "principal": { "type": "string" },
+    "hostId": { "type": "string" },
+    "workspaceProfile": { "type": "string" },
+    "engineeringRevision": { "type": "string" },
+    "baseRevision": { "type": "string" },
+    "branch": { "type": "string" },
+    "codePath": { "type": "string" },
+    "runtimePath": { "type": "string" },
+    "sourceCheckout": { "type": "string" },
+    "operationKey": { "type": "string" },
+    "operationFingerprint": { "type": ["string", "null"] },
+    "ownerKey": { "type": "string" },
+    "leaseGeneration": { "type": "number", "minimum": 1 },
+    "status": { "enum": ["provisioning", "code_ready", "needs_review", "released", "failed"] },
+    "readiness": {
+      "type": "object",
+      "required": ["requested", "actual"],
+      "properties": {
+        "requested": { "enum": ["code_ready", "runtime_ready"] },
+        "actual": { "type": "string" }
+      }
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "headRevision": { "type": ["string", "null"] },
+        "worktreeRegistered": { "type": "boolean" }
+      }
+    },
+    "retention": { "type": ["object", "null"] },
+    "failure": { "type": ["object", "null"] },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" },
+    "releasedAt": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

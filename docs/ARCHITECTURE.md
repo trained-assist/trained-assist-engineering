@@ -14,6 +14,7 @@ It is deliberately not a product runtime and not an MCP-only repository.
 Plain functions with explicit inputs/outputs. They contain the reusable behavior.
 
 Examples:
+- `spawnWorkspace()` / `statusWorkspace()` / `releaseWorkspace()`
 - `prepareTask()`
 - future `requestWork()`
 - future `fastVerify()`
