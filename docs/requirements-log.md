@@ -61,3 +61,35 @@ itself was judged genuinely earned complexity and is untouched.
 - [реализовано] Optional host override of workspace/mirror roots via
   `ENGINEERING_WORKSPACE_ROOT` / `ENGINEERING_MIRRORS_ROOT` (defaults to `~/agent-data/...`); needed
   so tests stay hermetic, and lets a host place workspaces outside the default home.
+
+## Domain-skill test & CI rules (issue #9)
+
+Adopts `docs/domain-skill-repo-test-rules.md` (trained-assist-agent#1437) in full. This repo is a
+domain MCP skill server, so the whole contract applies.
+
+- [реализовано] **L1 Contract** — `mcp.manifest.json` validated against vendored
+  `contracts/mcp-skill-sources.schema.json` (dependency-free `tests/helpers/json-schema.js`);
+  `revision` is a real 40-hex commit, `artifactDigest` recomputes over the shipped artifact
+  (`scripts/mcp-artifact.js`), action names are namespaced, and manifest action names equal the
+  real server's `tools/list`.
+- [реализовано] **L2 Behavior** — `tests/behavior.test.js` drives the real MCP server as a
+  stdio subprocess (`tests/helpers/mcp.js`) with one fixture per tool (`fixtures/tools.json`);
+  a failing `tools/call` is an `isError` result, not a process crash.
+- [реализовано] **L3 Guards** — `tests/guards.test.js`: no Claude/runner spawn, only `git` binary,
+  HTTP timeouts, credential files `0o600`, no secret logging, profile paths via the resolver.
+- [реализовано] Mock exactly two boundaries — LLM scripts (`fixtures/`, replay executor) and
+  external network git/`gh` + `ci.wait_for_green`/`deploy.merge_and_release`
+  (`tests/helpers/fake-provider.js`); MCP registry/service is never mocked (asserted by a guard).
+- [реализовано] **Replay gate** vendored: `scripts/staging/run.mjs` + `isolation-guard.cjs` +
+  `suites.json`; node:test TAP; fail-fast on prod creds / non-loopback; run manifest artifact.
+- [реализовано] **Scenarios + mock plan** — `docs/user-scenarios/engineering/01-development-playbook.md`
+  and `scenarios/development-playbook/` (16-step replay, fake timers for `delay_after_sec=600`,
+  merge never before green CI).
+- [реализовано] CI = deterministic replay (`contract`, `behavior`, `guards`, `staging-gate` jobs
+  in `.github/workflows/ci.yml`); LLM judge is staging-only and absent from CI.
+- [реализовано] `provider-manifest.json` now enumerates all 4 tools (name parity; it only
+  declared `engineering_prepare_task` before).
+- [реализовано] Profile paths resolved via `agentDataPath()` in `src/workspace/paths.js` (reads
+  `AGENT_DATA_DIR`), not hardcoded `os.homedir()`.
+- [планируется] Phase 2 harness extraction to `@trained-assist/mcp-skill-testkit`; staging
+  canary (mount the real control plane to a sandbox profile) per the rules doc §4/§6.

@@ -1,0 +1,13 @@
+{
+  "node": [
+    "tests/contract.test.js",
+    "tests/behavior.test.js",
+    "tests/guards.test.js",
+    "tests/fake-provider.test.js",
+    "scenarios/development-playbook/replay.test.js",
+    "tests/prepare-task.test.js",
+    "tests/workspace.test.js",
+    "tests/workspace-for-task.test.js",
+    "tests/mcp-workspace-tools.test.js"
+  ]
+}

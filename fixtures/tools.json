@@ -1,0 +1,30 @@
+{
+  "tools": [
+    {
+      "name": "engineering_prepare_task",
+      "setup": "repo",
+      "args": { "repo_path": "{{repoPath}}", "task": "change task router behavior" },
+      "expect": { "source": "raw-repo", "version": 1 }
+    },
+    {
+      "name": "engineering_spawn_workspace",
+      "setup": "remote",
+      "args": { "repository_url": "{{remoteUrl}}", "root_task_id": "fix-forum-topics" },
+      "expect": { "status": "code_ready" }
+    },
+    {
+      "name": "engineering_workspace_status",
+      "setup": "remote",
+      "dependsOn": "engineering_spawn_workspace",
+      "args": { "repository_url": "{{remoteUrl}}", "root_task_id": "fix-forum-topics" },
+      "expect": { "status": "code_ready" }
+    },
+    {
+      "name": "engineering_release_workspace",
+      "setup": "remote",
+      "dependsOn": "engineering_spawn_workspace",
+      "args": { "repository_url": "{{remoteUrl}}", "root_task_id": "fix-forum-topics" },
+      "expect": { "status": "released" }
+    }
+  ]
+}

@@ -23,10 +23,11 @@ const os = require('os');
 const path = require('path');
 const git = require('./git');
 const { fail } = require('./errors');
+const { agentDataPath } = require('./paths');
 const { spawnWorkspace, statusWorkspace, releaseWorkspace, ownerKeyOf, workspaceIdOf } = require('./workspace');
 
-const DEFAULT_WORKSPACE_ROOT = path.join(os.homedir(), 'agent-data', 'engineering-workspaces');
-const DEFAULT_MIRRORS_ROOT = path.join(os.homedir(), 'agent-data', 'engineering-mirrors');
+const DEFAULT_WORKSPACE_ROOT = agentDataPath('engineering-workspaces');
+const DEFAULT_MIRRORS_ROOT = agentDataPath('engineering-mirrors');
 
 // One local mirror per repository, shared across principals/tasks — never a
 // task's own working directory, only the thing git worktree forks from. Clone

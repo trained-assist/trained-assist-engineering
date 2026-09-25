@@ -1,8 +1,20 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { fail } = require('./errors');
+
+// Single resolver for host/profile-derived data paths. Everything else must go
+// through here (or an explicit host override) instead of hardcoding os.homedir(),
+// so a host can relocate all state and tests stay hermetic.
+function agentDataDir() {
+  return process.env.AGENT_DATA_DIR || path.join(os.homedir(), 'agent-data');
+}
+
+function agentDataPath(...segments) {
+  return path.join(agentDataDir(), ...segments);
+}
 
 function isInside(parent, child) {
   const rel = path.relative(parent, child);
@@ -48,4 +60,4 @@ function sanitizeSegment(value) {
   return cleaned;
 }
 
-module.exports = { isInside, realpathOrNull, assertAbsolute, assertContained, sanitizeSegment };
+module.exports = { isInside, realpathOrNull, assertAbsolute, assertContained, sanitizeSegment, agentDataDir, agentDataPath };

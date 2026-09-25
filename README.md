@@ -697,7 +697,8 @@ Implemented today:
 - MCP surface;
 - raw/index context-source abstraction;
 - provider manifest;
-- integration/onboarding architecture documents.
+- integration/onboarding architecture documents;
+- domain-skill test & CI contract (3 layers + deterministic replay gate), see below.
 
 See `docs/WORKSPACE-LIFECYCLE.md` for the workspace contract (E1) and `docs/requirements-log.md`
 for the current requirements status.
@@ -721,6 +722,33 @@ A roadmap item is not considered implemented merely because it exists in this RE
 
 ---
 
+# Testing & CI (domain-skill rules)
+
+This repo is a domain MCP skill server, so it follows
+`docs/domain-skill-repo-test-rules.md` in full. The contract is tested on three
+hermetic layers, plus a deterministic replay gate:
+
+| Layer | Command | What it proves |
+|-------|---------|----------------|
+| L1 contract | `npm run test:contract` | `mcp.manifest.json` conforms to `contracts/mcp-skill-sources.schema.json`; `artifactDigest` recomputes; manifest action names equal the real server's `tools/list` |
+| L2 behavior | `npm run test:behavior` | the real MCP server runs as a stdio subprocess and every tool has a fixture; a failing call is an `isError` result, not a crash |
+| L3 guards | `npm run test:guards` | no Claude/runner spawn, only the `git` binary, HTTP timeouts, `0o600` credential files, no secret logging, paths via resolver |
+| Replay gate | `npm run test:staging` | `scripts/staging/run.mjs` + `isolation-guard.cjs`: temp data roots, prod-cred fail-fast, loopback-only outbound, `suites.json`, run manifest artifact |
+
+Mock exactly two boundaries — **LLM/Hermes** (scripted responses in the replay
+executor) and **external network** (`git`/`gh` + `ci.wait_for_green` /
+`deploy.merge_and_release` via `tests/helpers/fake-provider.js`). The MCP
+registry/service is never mocked. **CI is deterministic replay; the LLM judge is
+staging-only** and never runs here.
+
+Scenarios live in `docs/user-scenarios/engineering/` (scenario + mock plan) and
+`scenarios/development-playbook/` (16-step replay with fake timers for
+`delay_after_sec`, asserting a merge never precedes green CI). Regenerate the
+source manifest after touching `src/` or `provider-manifest.json`:
+`npm run manifest` (CI verifies with `npm run manifest:check`).
+
+---
+
 # Repository layout
 
 ```text
@@ -739,6 +767,9 @@ src/
 
 contracts/
 playbooks/
+scenarios/          # deterministic replay scenarios (gate input)
+fixtures/           # recorded/scripted external-world fixtures
+scripts/staging/    # vendored replay gate (run.mjs, isolation-guard.cjs, suites.json)
 docs/
 examples/
 ```
