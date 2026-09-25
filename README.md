@@ -689,6 +689,8 @@ See `docs/INTEGRATION.md`.
 
 Implemented today:
 
+- workspace `code_ready` core (`spawnWorkspace`/`statusWorkspace`/`releaseWorkspace`) with
+  ownership/lease, idempotency, crash recovery, conservative release and a local proof;
 - raw-repository `prepare_task` core;
 - Task Packet contract;
 - CLI surface;
@@ -696,6 +698,9 @@ Implemented today:
 - raw/index context-source abstraction;
 - provider manifest;
 - integration/onboarding architecture documents.
+
+See `docs/WORKSPACE-LIFECYCLE.md` for the workspace contract (E1) and `docs/requirements-log.md`
+for the current requirements status.
 
 Current priority order:
 
@@ -721,6 +726,12 @@ A roadmap item is not considered implemented merely because it exists in this RE
 ```text
 src/
   prepare-task.js
+  workspace/
+    workspace.js        # spawn/status/release/reconcile
+    git.js
+    store.js
+    paths.js
+    errors.js
   context-sources/
     raw-repo.js
     indexed-repo.js

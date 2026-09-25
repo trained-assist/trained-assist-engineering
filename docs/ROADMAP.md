@@ -31,10 +31,18 @@
 
 ## Phase 3 — Workspace Accelerator
 
-- `spawn_workspace`;
-- fresh worktree/checkout;
+E1 `code_ready` (done — see `docs/WORKSPACE-LIFECYCLE.md`):
+
+- `spawnWorkspace()` (provider action `engineering_spawn_workspace`);
+- exact-revision worktree from a registered source checkout, outside the live checkout;
+- ownership/lease, idempotency, crash recovery;
+- conservative release (`needs_review` on dirty/untracked/unpushed/stash/unknown remote).
+
+E2 `runtime_ready` (planned):
+
 - dependency cache reuse;
 - isolated ports/temp DB/test users/logs;
+- dev-server/health and process supervision;
 - deterministic cleanup.
 
 ## Phase 4 — Fast Verify / Impact Analysis
