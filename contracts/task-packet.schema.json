@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Engineering Task Packet",
+  "type": "object",
+  "required": ["version", "generatedAt", "task", "repository", "source", "context", "hints"],
+  "properties": {
+    "version": { "const": 1 },
+    "generatedAt": { "type": "string" },
+    "task": { "type": "string" },
+    "repository": { "type": "object" },
+    "source": { "enum": ["raw-repo", "indexed-repo"] },
+    "context": { "type": "object" },
+    "hints": { "type": "object" }
+  },
+  "additionalProperties": true
+}
