@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-25T06:47:40.445Z",
+  "task": "extract issue fixer and CI engineering tooling",
+  "repository": {
+    "path": "/mnt/data/trained-assist-engineering",
+    "git": false,
+    "head": null,
+    "branch": null,
+    "dirty": false
+  },
+  "source": "raw-repo",
+  "context": {
+    "source": "raw-repo",
+    "terms": ["engineering", "extract", "tooling", "issue", "fixer"],
+    "likelyFiles": [
+      { "file": "bin/engineering.js", "score": 6 },
+      { "file": "docs/EXTRACTION.md", "score": 6 }
+    ],
+    "grepMatches": [],
+    "relatedTests": ["tests/prepare-task.test.js"],
+    "relatedDocs": ["docs/EXTRACTION.md", "docs/ARCHITECTURE.md", "docs/INDEXER.md", "docs/INTEGRATION.md", "docs/ROADMAP.md", "README.md"],
+    "recentHistory": [],
+    "fileCount": 23
+  },
+  "hints": {
+    "nextStep": "Give this Task Packet to the implementation agent before broad repository exploration.",
+    "indexStatus": "not-used"
+  }
+}
