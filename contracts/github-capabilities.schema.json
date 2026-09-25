@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitHub Capability Request",
+  "type": "object",
+  "required": ["repository", "capabilities"],
+  "properties": {
+    "repository": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "repo.read",
+          "issues.read",
+          "issues.write",
+          "pull_requests.read",
+          "pull_requests.write",
+          "checks.read",
+          "actions.read",
+          "actions.write",
+          "contents.write",
+          "merge"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}
