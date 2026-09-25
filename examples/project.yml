@@ -1,0 +1,21 @@
+version: 1
+project: trained-assist-agent
+defaultBranch: main
+
+docs:
+  - README.md
+  - docs/architecture/
+  - docs/user-scenarios/
+
+tests:
+  quick: npm run check
+  full: npm test
+
+deploy:
+  environments:
+    - gcp
+    - ru-edge
+
+domains:
+  - core-agent
+  - durable-execution
