@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/prepare-task.js && node --check src/mcp-skills/index.js && node --check src/mcp-skills/registry.js && node --check src/mcp-skills/tools/10-prepare-task.js && node --check src/adapters/credential-broker.js && node --check src/adapters/merge-relay.js && node --check bin/engineering.js"
+    "check": "node --check src/prepare-task.js && node --check src/mcp-skills/index.js && node --check src/mcp-skills/registry.js && node --check src/mcp-skills/tools/10-prepare-task.js && node --check src/adapters/credential-broker.js && node --check src/adapters/merge-relay.js && node --check src/workspace/errors.js && node --check src/workspace/paths.js && node --check src/workspace/store.js && node --check src/workspace/git.js && node --check src/workspace/workspace.js && node --check src/workspace/index.js && node --check bin/engineering.js",
+    "proof:workspace": "node scripts/proof-workspace-lifecycle.js"
   },
   "engines": {
     "node": ">=22"
