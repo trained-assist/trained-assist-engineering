@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Engineering Project Manifest",
+  "type": "object",
+  "required": ["version", "project"],
+  "properties": {
+    "version": { "const": 1 },
+    "project": { "type": "string", "minLength": 1 },
+    "defaultBranch": { "type": "string", "default": "main" },
+    "docs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tests": {
+      "type": "object",
+      "properties": {
+        "quick": { "type": "string" },
+        "full": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "deploy": {
+      "type": "object",
+      "properties": {
+        "environments": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "domains": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}
