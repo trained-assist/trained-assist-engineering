@@ -20,7 +20,7 @@ const gitlib = require('../src/workspace/git');
 const cleanup = [];
 
 function tmp(prefix) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
   cleanup.push(dir);
   return dir;
 }

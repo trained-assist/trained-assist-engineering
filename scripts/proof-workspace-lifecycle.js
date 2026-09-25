@@ -25,7 +25,7 @@ function check(label, condition, detail = '') {
 }
 
 function tmp(prefix) {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
 }
 
 function runGit(cwd, args) {

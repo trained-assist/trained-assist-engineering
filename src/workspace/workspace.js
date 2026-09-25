@@ -39,9 +39,9 @@ function normalizeBinding(binding) {
     fail('INVALID_BINDING', 'workspaceRoot must not be a filesystem root');
   }
 
-  const workspaceRoot = path.resolve(binding.workspaceRoot);
+  fs.mkdirSync(path.resolve(binding.workspaceRoot), { recursive: true });
+  const workspaceRoot = realpathOrNull(binding.workspaceRoot) || path.resolve(binding.workspaceRoot);
   const sourceCheckout = realpathOrNull(binding.sourceCheckout) || path.resolve(binding.sourceCheckout);
-  fs.mkdirSync(workspaceRoot, { recursive: true });
 
   if (!git.isGitRepo(sourceCheckout)) {
     fail('INVALID_BINDING', 'sourceCheckout is not a git repository', { sourceCheckout });
@@ -493,7 +493,7 @@ function requireOwnership(record, { principal, rootTaskId, hostId } = {}) {
 function requireWorkspaceRoot(workspaceRoot) {
   assertAbsolute(workspaceRoot, 'workspaceRoot');
   if (!fs.existsSync(workspaceRoot)) fail('NOT_FOUND', `workspace root not found: ${workspaceRoot}`);
-  return path.resolve(workspaceRoot);
+  return realpathOrNull(workspaceRoot) || path.resolve(workspaceRoot);
 }
 
 function statusWorkspace({ workspaceRoot, workspaceId, principal, rootTaskId, hostId } = {}) {
