@@ -47,3 +47,17 @@ itself was judged genuinely earned complexity and is untouched.
   hard requirement for this same-company, first-party repository — access is already gated by the
   calling profile's own git credentials. Deferred, not designed away: `allowedRoots` still exists
   and works in `spawnWorkspace()` if a less-trusted source ever needs it.
+
+## MCP wrapper: `engineering_spawn_workspace` / `_status` / `_release` (issue #6)
+
+- [реализовано] `src/mcp-skills/tools/20-workspace.js` exposes the three `for-task.js` functions as
+  MCP tools, same shape as `engineering_prepare_task`. Inputs are only `repository_url` +
+  `root_task_id` (spawn also `ref`; release adds `processes_stopped`/`force`/`delivery_evidence`).
+  `principal` is never an argument — read from `process.env.USER_ID` inside the handler (matching
+  trained-assist-agent's `mcpToolEnv`, so an argument can't override profile identity).
+- [реализовано] Registered in `src/mcp-skills/registry.js`; `tests/mcp-workspace-tools.test.js`
+  drives spawn→status→release through `registry.callTool()` against a bare-repo fixture, asserting
+  env-wins and typed `INVALID_BINDING` errors for missing fields.
+- [реализовано] Optional host override of workspace/mirror roots via
+  `ENGINEERING_WORKSPACE_ROOT` / `ENGINEERING_MIRRORS_ROOT` (defaults to `~/agent-data/...`); needed
+  so tests stay hermetic, and lets a host place workspaces outside the default home.
