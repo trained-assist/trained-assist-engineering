@@ -172,6 +172,7 @@ function summarize(record, extra = {}) {
     runtimePath: record.runtimePath,
     leaseGeneration: record.leaseGeneration,
     readiness: record.readiness,
+    git: record.git,
     retention: record.retention,
     failure: record.failure,
     createdAt: record.createdAt,
