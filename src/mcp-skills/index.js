@@ -23,8 +23,14 @@ rl.on('line', async line => {
       result(id, { tools: registry.listTools() });
     } else if (method === 'tools/call') {
       const { name, arguments: args } = params || {};
-      const value = await registry.callTool(name, args || {});
-      result(id, { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] });
+      try {
+        const value = await registry.callTool(name, args || {});
+        result(id, { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] });
+      } catch (e) {
+        // A failed tool call is a tool result with isError, not a transport
+        // crash: the server stays up and answers the next request.
+        result(id, { isError: true, content: [{ type: 'text', text: e.message }] });
+      }
     } else {
       error(id, -32601, `Method not found: ${method}`);
     }

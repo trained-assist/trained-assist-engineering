@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "engineering",
+      "providerId": "engineering",
+      "mcpServerId": "engineering",
+      "repository": "trained-assist/trained-assist-engineering",
+      "revision": "1422bea4ac363ce38ac8f61697f135e3d1f2b72b",
+      "manifestVersion": 2,
+      "artifactDir": ".",
+      "entrypoint": "src/mcp-skills/index.js",
+      "manifest": "provider-manifest.json",
+      "artifactDigest": "78eaaf6de7eb3c4fb59bd175746d98e750d0be0c20d64b07328f92177d902215",
+      "approvedManifest": {
+        "version": 2,
+        "providerId": "engineering",
+        "actions": [
+          {
+            "name": "engineering_prepare_task",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "repo_path",
+                "task"
+              ],
+              "properties": {
+                "repo_path": {
+                  "type": "string"
+                },
+                "task": {
+                  "type": "string"
+                },
+                "prefer_index": {
+                  "type": "boolean"
+                },
+                "max_results": {
+                  "type": "number"
+                }
+              }
+            },
+            "allowedTriggers": [
+              "user",
+              "cron",
+              "system"
+            ],
+            "effect": "read",
+            "requiresApproval": false,
+            "retrySafety": "read_only"
+          },
+          {
+            "name": "engineering_spawn_workspace",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "repository_url",
+                "root_task_id"
+              ],
+              "properties": {
+                "repository_url": {
+                  "type": "string"
+                },
+                "root_task_id": {
+                  "type": "string"
+                },
+                "ref": {
+                  "type": "string"
+                }
+              }
+            },
+            "allowedTriggers": [
+              "user",
+              "system"
+            ],
+            "effect": "write",
+            "requiresApproval": false,
+            "retrySafety": "idempotent"
+          },
+          {
+            "name": "engineering_workspace_status",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "repository_url",
+                "root_task_id"
+              ],
+              "properties": {
+                "repository_url": {
+                  "type": "string"
+                },
+                "root_task_id": {
+                  "type": "string"
+                }
+              }
+            },
+            "allowedTriggers": [
+              "user",
+              "cron",
+              "system"
+            ],
+            "effect": "read",
+            "requiresApproval": false,
+            "retrySafety": "read_only"
+          },
+          {
+            "name": "engineering_release_workspace",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "repository_url",
+                "root_task_id"
+              ],
+              "properties": {
+                "repository_url": {
+                  "type": "string"
+                },
+                "root_task_id": {
+                  "type": "string"
+                },
+                "processes_stopped": {
+                  "type": "boolean"
+                },
+                "force": {
+                  "type": "boolean"
+                },
+                "delivery_evidence": {
+                  "type": "object"
+                }
+              }
+            },
+            "allowedTriggers": [
+              "user",
+              "system"
+            ],
+            "effect": "destructive",
+            "requiresApproval": true,
+            "retrySafety": "idempotent"
+          }
+        ],
+        "contextFields": [
+          {
+            "key": "engineering_active_task",
+            "label": "Active engineering task (root_task_id)",
+            "type": "string",
+            "source": "context_store"
+          }
+        ],
+        "connections": []
+      },
+      "enabled": true,
+      "profiles": [
+        "engineering"
+      ]
+    }
+  ]
+}

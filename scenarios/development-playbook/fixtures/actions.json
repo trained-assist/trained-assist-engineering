@@ -1,0 +1,11 @@
+{
+  "runnerMap": {
+    "Run tests, lint and regression checks": "shell: npm run check && npm test",
+    "Open PR": "action: git.open_pr",
+    "Wait for CI and staging; repair failures": "action: ci.wait_for_green",
+    "Merge and deploy": "action: deploy.merge_and_release"
+  },
+  "ci": {
+    "greenAfterPolls": 2
+  }
+}

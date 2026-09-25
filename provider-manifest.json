@@ -18,8 +18,64 @@
       "effect": "read",
       "requiresApproval": false,
       "retrySafety": "read_only"
+    },
+    {
+      "name": "engineering_spawn_workspace",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repository_url", "root_task_id"],
+        "properties": {
+          "repository_url": { "type": "string" },
+          "root_task_id": { "type": "string" },
+          "ref": { "type": "string" }
+        }
+      },
+      "allowedTriggers": ["user", "system"],
+      "effect": "write",
+      "requiresApproval": false,
+      "retrySafety": "idempotent"
+    },
+    {
+      "name": "engineering_workspace_status",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repository_url", "root_task_id"],
+        "properties": {
+          "repository_url": { "type": "string" },
+          "root_task_id": { "type": "string" }
+        }
+      },
+      "allowedTriggers": ["user", "cron", "system"],
+      "effect": "read",
+      "requiresApproval": false,
+      "retrySafety": "read_only"
+    },
+    {
+      "name": "engineering_release_workspace",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repository_url", "root_task_id"],
+        "properties": {
+          "repository_url": { "type": "string" },
+          "root_task_id": { "type": "string" },
+          "processes_stopped": { "type": "boolean" },
+          "force": { "type": "boolean" },
+          "delivery_evidence": { "type": "object" }
+        }
+      },
+      "allowedTriggers": ["user", "system"],
+      "effect": "destructive",
+      "requiresApproval": true,
+      "retrySafety": "idempotent"
     }
   ],
-  "contextFields": [],
+  "contextFields": [
+    {
+      "key": "engineering_active_task",
+      "label": "Active engineering task (root_task_id)",
+      "type": "string",
+      "source": "context_store"
+    }
+  ],
   "connections": []
 }
