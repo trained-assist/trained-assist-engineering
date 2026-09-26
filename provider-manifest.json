@@ -37,6 +37,63 @@
       "retrySafety": "read_only"
     },
     {
+      "name": "engineering_pr_autofix_register",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo"],
+        "properties": {
+          "repo": { "type": "string" },
+          "base_branch": { "type": "string" },
+          "features": {
+            "type": "object",
+            "properties": {
+              "fix": { "type": "boolean" },
+              "cleanup": { "type": "boolean" },
+              "batch": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "autofix_ref": { "type": "string" },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      },
+      "allowedTriggers": ["user"],
+      "effect": "write",
+      "requiresApproval": false,
+      "retrySafety": "idempotent"
+    },
+    {
+      "name": "engineering_pr_autofix_status",
+      "inputSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "repo": { "type": "string" }
+        }
+      },
+      "allowedTriggers": ["user", "system"],
+      "effect": "read",
+      "requiresApproval": false,
+      "retrySafety": "read_only"
+    },
+    {
+      "name": "engineering_pr_autofix_disable",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo"],
+        "properties": {
+          "repo": { "type": "string" }
+        }
+      },
+      "allowedTriggers": ["user"],
+      "effect": "write",
+      "requiresApproval": false,
+      "retrySafety": "idempotent"
+    },
+    {
       "name": "qa_log_register",
       "inputSchema": {
         "type": "object",

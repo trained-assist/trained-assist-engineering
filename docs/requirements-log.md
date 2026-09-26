@@ -86,3 +86,30 @@ itself was judged genuinely earned complexity and is untouched.
   the registry.
 - [отклонено (non-goals)] Embedding/vector index, nightly scheduler infra, credential binding,
   workspace-lifecycle changes. Semantic module summaries stay optional/off by default.
+
+## pr-autofix service slice 1 — registration store + status (issue #15)
+
+Design: `docs/PR-AUTOFIX-SERVICE.md` §1/§6. Additive, zero credential writes, no external GitHub
+writes.
+
+- [реализовано] `src/pr-autofix/registry.js`: per-profile JSON store keyed by `(profileId, repo)`
+  at `ENGINEERING_PR_AUTOFIX_ROOT/<profile>.json` (default `~/agent-data/pr-autofix`). Record fields:
+  `repo, base_branch, features{fix,cleanup,batch}, autofix_ref, capabilities, status,
+  created_at, updated_at`. State enum `registered → credentials_bound → workflow_installed →
+  active → disabled|error`; slice 1 only produces `registered`/`disabled`.
+- [реализовано] `registerAutofix` = idempotent upsert (one record per repo, `created_at` stable,
+  `updated_at` monotonic bump); it never lets the caller set `status` (no auto-enable) and keeps a
+  `disabled` registration disabled. `disableAutofix` = kill-switch to `disabled`, idempotent.
+- [реализовано] MCP tools `engineering_pr_autofix_register` / `_status` / `_disable`
+  (`src/mcp-skills/tools/50-pr-autofix.js`), registered in the MCP registry + `provider-manifest.json`.
+  Profile identity from `USER_ID` (env wins); local state only — no workflow install, no secret push.
+  Descriptions note a later external-write slice will require approval.
+- [реализовано] Capability records only: `capabilities` is a name→description map; a
+  credential-material guard rejects raw secrets (`CREDENTIAL_REJECTED`) and no secret field is ever
+  persisted. Contract: `contracts/pr-autofix-registration.schema.json`.
+- [реализовано] Tests: upsert idempotency + `updated_at` bump, no-auto-enable, per-profile
+  isolation, disable transition + idempotency, secret rejection/persistence guard, MCP env-identity
+  round-trip; contract guards tool/manifest sync + schema enum.
+- [отклонено (non-goals slice 1)] Workflow install, credential/secret delivery, `credential_refs` /
+  `installed_workflow` fields, run-event lifecycle, notifications, reimplementing the fixer —
+  slices 2/3.

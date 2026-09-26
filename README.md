@@ -520,6 +520,19 @@ library is a per-profile JSON registry of log locations (`qa_log_register` /
 contents and never raw credentials; registrations that look like they contain secrets are
 rejected. See `contracts/qa-log.schema.json`.
 
+## pr-autofix service (slice 1)
+
+`pr-autofix` is registered per profile as a capability record, not a secret store. Slice 1 adds the
+registration store + state machine and three tools (`engineering_pr_autofix_register` /
+`engineering_pr_autofix_status` / `engineering_pr_autofix_disable`), keyed by `(USER_ID, repo)`
+under `~/agent-data/pr-autofix/` (host override: `ENGINEERING_PR_AUTOFIX_ROOT`). A registration
+records `{ repo, base_branch, features{fix,cleanup,batch}, autofix_ref, capabilities, status,
+created_at, updated_at }` and moves through `registered → credentials_bound → workflow_installed →
+active → disabled|error`. `register` is an idempotent upsert that never auto-enables; `disable` is
+the kill-switch. Slice 1 writes local state only — no workflow install and no credential/secret
+delivery; raw secrets are rejected (`CREDENTIAL_REJECTED`) and never persisted. See
+`docs/PR-AUTOFIX-SERVICE.md` and `contracts/pr-autofix-registration.schema.json`.
+
 ---
 
 # 10. Repository Gardener
@@ -713,6 +726,8 @@ Implemented today:
 - `engineering_repo_context(keywords)` — fast keyword context from a fresh index or the raw
   keyword ranking;
 - QA logs library (`qa_log_register` / `qa_log_lookup` / `qa_log_list`);
+- pr-autofix registration store + state machine (slice 1:
+  `engineering_pr_autofix_register` / `_status` / `_disable`, local state only);
 - Task Packet contract;
 - CLI surface;
 - MCP surface;
@@ -764,6 +779,8 @@ src/
     repo-context.js     # engineering_repo_context keyword query
   qa-logs/
     registry.js         # per-profile log-location registry
+  pr-autofix/
+    registry.js         # per-profile pr-autofix registration store + state machine
   mcp-skills/
 
 contracts/
