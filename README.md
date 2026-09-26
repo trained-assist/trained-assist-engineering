@@ -510,6 +510,16 @@ Lookup order:
 
 Example: once the system has proven a particular GitHub Actions/token failure mode, future agents should retrieve that evidence instead of spending another research cycle on it.
 
+## Logs library
+
+Alongside known fixes, a model should not have to re-discover *where the logs are*. The QA logs
+library is a per-profile JSON registry of log locations (`qa_log_register` /
+`qa_log_lookup` / `qa_log_list`), keyed by `USER_ID` under `~/agent-data/qa-logs/`
+(host override: `ENGINEERING_QA_LOGS_ROOT`). An entry records only metadata —
+`{ name, location, ttl, fields, how_to_read, owner, source, added_at }` — never log
+contents and never raw credentials; registrations that look like they contain secrets are
+rejected. See `contracts/qa-log.schema.json`.
+
 ---
 
 # 10. Repository Gardener
@@ -580,6 +590,12 @@ A future repository index maintains reusable context:
 - historical hotspots.
 
 It is an acceleration layer, not a new source of truth.
+
+v1 is deterministic and shipped: a `buildIndex` entry writes `.engineering/index/`
+(revision identity/schema/timestamp, files, modules, symbols, tests, hotspots); `prepare_task`
+prefers it via `prefer_index` and falls back to raw whenever it is missing, stale or
+incompatible; `engineering_repo_context(keywords)` answers "give me context by keys, super
+fast" from the index or, failing that, the raw keyword ranking. See `docs/INDEXER.md`.
 
 Canonical product state remains:
 
@@ -692,6 +708,11 @@ Implemented today:
 - workspace `code_ready` core (`spawnWorkspace`/`statusWorkspace`/`releaseWorkspace`) with
   ownership/lease, idempotency, crash recovery, conservative release and a local proof;
 - raw-repository `prepare_task` core;
+- deterministic repository index v1 (`buildIndex` → `.engineering/index/`) plus
+  `prepare_task` `prefer_index` with automatic stale/incompatible fallback to raw;
+- `engineering_repo_context(keywords)` — fast keyword context from a fresh index or the raw
+  keyword ranking;
+- QA logs library (`qa_log_register` / `qa_log_lookup` / `qa_log_list`);
 - Task Packet contract;
 - CLI surface;
 - MCP surface;
@@ -732,15 +753,24 @@ src/
     store.js
     paths.js
     errors.js
+  index/
+    build.js            # deterministic index builder
+    status.js           # compatibility / staleness checks
+    lang.js             # language detection + regex symbol scan
+    schema.js
   context-sources/
     raw-repo.js
     indexed-repo.js
+    repo-context.js     # engineering_repo_context keyword query
+  qa-logs/
+    registry.js         # per-profile log-location registry
   mcp-skills/
 
 contracts/
 playbooks/
 docs/
 examples/
+scripts/                # index-repo.js, manifest-check.js
 ```
 
 Expected future top-level capability areas include workspace management, verification, scheduler/admission, repository intelligence and engineering memory.
