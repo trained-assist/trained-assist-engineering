@@ -10,7 +10,7 @@ idempotently, replacing per-repo hand-wiring — without touching credentials (t
 
 ## Definition of done
 
-- [ ] CI green on the PR for this change (trained-assist/trained-assist-engineering)
+- [ ] CI green on https://github.com/trained-assist/trained-assist-engineering/pull/18
 - [ ] Merged to main
 - [ ] Deployed to prod — verified live
 
