@@ -8,7 +8,7 @@ Make repository context fast and reusable (deterministic index + `prefer_index` 
 
 ## Definition of done
 
-- [ ] CI green on https://github.com/trained-assist/trained-assist-engineering/pull/13
+- [x] CI green on https://github.com/trained-assist/trained-assist-engineering/pull/13
 - [ ] Merged to main
 - [ ] Deployed to prod — verified live
 
