@@ -4,7 +4,8 @@ const prepare = require('./tools/10-prepare-task');
 const workspace = require('./tools/20-workspace');
 const repoContext = require('./tools/30-repo-context');
 const qaLogs = require('./tools/40-qa-logs');
-const tools = [prepare, ...workspace, ...repoContext, ...qaLogs];
+const prAutofix = require('./tools/50-pr-autofix');
+const tools = [prepare, ...workspace, ...repoContext, ...qaLogs, ...prAutofix];
 
 function listTools() {
   return tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
