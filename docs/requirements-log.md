@@ -61,3 +61,28 @@ itself was judged genuinely earned complexity and is untouched.
 - [реализовано] Optional host override of workspace/mirror roots via
   `ENGINEERING_WORKSPACE_ROOT` / `ENGINEERING_MIRRORS_ROOT` (defaults to `~/agent-data/...`); needed
   so tests stay hermetic, and lets a host place workspaces outside the default home.
+
+## Repository indexer v1 + engineering_repo_context + QA logs (issue #11)
+
+- [реализовано] Deterministic index v1: `buildIndex()` writes `.engineering/index/`
+  (`revision.json` with schemaVersion/repo identity/indexed revision/generatedAt; `files.json`;
+  `modules.json` + hotspots; `symbols.json`; `tests.json`). No LLM; git tree metadata +
+  regex symbol scan + test mapping + git-history hotspots. `scripts/index-repo.js`
+  (`--check` for the refresh/check helper); `npm run index:build` / `index:check`.
+- [реализовано] `prepare_task` keeps `prefer_index` (default true) but now rejects/falls back
+  from an index that is missing, corrupt, schema-incompatible, for another repo, or stale for
+  the current HEAD. Indexing is never a correctness dependency; raw fallback is untouched.
+- [реализовано] `engineering_repo_context({repo_path, keywords, max_results?, budget?})`:
+  queries a fresh index, otherwise the deterministic raw keyword ranking; returns ranked
+  `{ path, line, snippet, why }`. No network, no LLM. Registered in the MCP registry +
+  provider manifest.
+- [реализовано] QA logs library: per-profile JSON registry at
+  `ENGINEERING_QA_LOGS_ROOT/<profile>.json` (default `~/agent-data/qa-logs`), tools
+  `qa_log_register` / `qa_log_lookup` / `qa_log_list`, profile from `USER_ID` (env wins).
+  Entries store location + how-to-read only; a credential-material guard rejects secrets.
+  Contract: `contracts/qa-log.schema.json`.
+- [реализовано] CI contract: `tests/contract.test.js` guards registry↔provider-manifest drift
+  and the dual context-source contract; `npm run manifest:check` validates the manifest against
+  the registry.
+- [отклонено (non-goals)] Embedding/vector index, nightly scheduler infra, credential binding,
+  workspace-lifecycle changes. Semantic module summaries stay optional/off by default.
