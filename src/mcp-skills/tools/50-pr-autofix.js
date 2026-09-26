@@ -1,6 +1,6 @@
 'use strict';
 
-const { registerAutofix, statusAutofix, disableAutofix } = require('../../pr-autofix');
+const { registerAutofix, statusAutofix, disableAutofix, installAutofixWorkflow } = require('../../pr-autofix');
 
 // `profileId` is host-derived identity (USER_ID), never a tool-call argument —
 // same rule as the workspace and qa-log tools, so an argument cannot redirect
@@ -31,7 +31,8 @@ const register = {
         },
         additionalProperties: false,
       },
-      autofix_ref: { type: 'string', description: 'Pinned pr-autofix revision/tag. Defaults to "v1".' },
+      autofix_ref: { type: 'string', description: 'Pinned pr-autofix revision/tag. Defaults to an immutable tag ("v1.2.1").' },
+      ci_workflow_name: { type: 'string', description: 'name: of the target repo CI workflow the installed workflow_run trigger watches. Defaults to "CI".' },
       capabilities: {
         type: 'object',
         additionalProperties: { type: 'string' },
@@ -39,9 +40,28 @@ const register = {
       },
     },
   },
-  handler: async ({ repo, base_branch, features, autofix_ref, capabilities } = {}) => {
+  handler: async ({ repo, base_branch, features, autofix_ref, ci_workflow_name, capabilities } = {}) => {
     const { profileId, root } = context();
-    return registerAutofix({ profileId, root, registration: { repo, base_branch, features, autofix_ref, capabilities } });
+    return registerAutofix({ profileId, root, registration: { repo, base_branch, features, autofix_ref, ci_workflow_name, capabilities } });
+  },
+};
+
+const install = {
+  name: 'engineering_pr_autofix_install',
+  description: 'Install or update the pr-autofix workflow in a registered repository. Builds .github/workflows/pr-autofix.yml pinned to an immutable pr-autofix ref and opens (or updates) a pull request against the base branch; the cleanup workflow is installed when features.cleanup is set. EXTERNAL WRITE: opening a PR in the target repo requires approval and a host GitHub token (ENGINEERING_GITHUB_TOKEN / GITHUB_TOKEN / GH_TOKEN). It never writes credentials or repository Actions secrets. Idempotent: an identical pinned job already present is a no-op, and bumping autofix_ref updates the open install PR.',
+  inputSchema: {
+    type: 'object',
+    required: ['repo'],
+    properties: {
+      repo: { type: 'string', description: 'Target repository in "owner/name" form (must be registered).' },
+      base_branch: { type: 'string', description: 'Branch the install PR targets. Defaults to the registration base_branch.' },
+      autofix_ref: { type: 'string', description: 'Immutable pr-autofix tag (e.g. "v1.2.1") or full commit SHA to pin.' },
+      ci_workflow_name: { type: 'string', description: 'name: of the target repo CI workflow the workflow_run trigger watches. Defaults to "CI".' },
+    },
+  },
+  handler: async ({ repo, base_branch, autofix_ref, ci_workflow_name } = {}) => {
+    const { profileId, root } = context();
+    return installAutofixWorkflow({ profileId, root, repo, base_branch, autofix_ref, ci_workflow_name });
   },
 };
 
@@ -77,4 +97,4 @@ const disable = {
   },
 };
 
-module.exports = [register, status, disable];
+module.exports = [register, install, status, disable];

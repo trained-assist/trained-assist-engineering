@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { fail } = require('./errors');
+const { DEFAULT_AUTOFIX_REF, DEFAULT_CI_WORKFLOW_NAME } = require('./constants');
 
 // Slice 1 of the pr-autofix service: a per-profile registration store and state
 // machine. Registrations are *capability records* keyed by (profileId, repo) —
@@ -21,7 +22,11 @@ const SCHEMA_VERSION = 1;
 
 const STATUSES = ['registered', 'credentials_bound', 'workflow_installed', 'active', 'disabled', 'error'];
 
-const RECORD_FIELDS = ['repo', 'base_branch', 'features', 'autofix_ref', 'capabilities', 'status', 'created_at', 'updated_at'];
+// `ci_workflow_name` (slice 2a) configures which target-repo CI workflow the
+// installed `workflow_run` trigger watches. `installed_workflow` records the
+// install (path/ref/time/PR URL only — never a secret). Both are always present
+// on a persisted record so the shape is stable.
+const RECORD_FIELDS = ['repo', 'base_branch', 'features', 'autofix_ref', 'capabilities', 'ci_workflow_name', 'installed_workflow', 'status', 'created_at', 'updated_at'];
 
 const FEATURES = ['fix', 'cleanup', 'batch'];
 
@@ -148,8 +153,11 @@ function buildRecord(input) {
       : assertString(input.base_branch, 'base_branch'),
     features: normalizeFeatures(input.features),
     autofix_ref: input.autofix_ref === undefined || input.autofix_ref === null || input.autofix_ref === ''
-      ? 'v1'
+      ? DEFAULT_AUTOFIX_REF
       : assertString(input.autofix_ref, 'autofix_ref'),
+    ci_workflow_name: input.ci_workflow_name === undefined || input.ci_workflow_name === null || input.ci_workflow_name === ''
+      ? DEFAULT_CI_WORKFLOW_NAME
+      : assertString(input.ci_workflow_name, 'ci_workflow_name'),
     capabilities: normalizeCapabilities(input.capabilities),
   };
   assertNoCredentialMaterial(record);
@@ -175,16 +183,24 @@ function registerAutofix({ profileId, root, registration } = {}) {
   const next = buildRecord(registration);
   const existing = data.registrations.find((entry) => entry.repo === next.repo);
   if (existing) {
+    const requestedCi = registration.ci_workflow_name;
     Object.assign(existing, next, {
       status: existing.status,
       created_at: existing.created_at,
       updated_at: bumpTimestamp(existing.updated_at),
+      // Installing a workflow is not undone by re-registering: keep the install
+      // record, and only replace ci_workflow_name when the caller explicitly
+      // asked for a different one.
+      installed_workflow: existing.installed_workflow || null,
+      ci_workflow_name: requestedCi === undefined || requestedCi === null || requestedCi === ''
+        ? existing.ci_workflow_name || DEFAULT_CI_WORKFLOW_NAME
+        : next.ci_workflow_name,
     });
     writeRegistry(file, data);
     return { profileId: data.profileId, registration: existing, created: false };
   }
   const now = new Date().toISOString();
-  const record = { ...next, status: 'registered', created_at: now, updated_at: now };
+  const record = { ...next, installed_workflow: null, status: 'registered', created_at: now, updated_at: now };
   data.registrations.push(record);
   data.registrations.sort(byRepo);
   writeRegistry(file, data);
@@ -221,6 +237,49 @@ function disableAutofix({ profileId, root, repo } = {}) {
   return { profileId: data.profileId, registration: record, changed };
 }
 
+function getAutofixRegistration({ profileId, root, repo } = {}) {
+  if (!profileId) fail('INVALID_PROFILE', 'profileId is required');
+  const wanted = normalizeRepo(repo);
+  const data = readRegistry(registrationFile({ profileId, root }), profileId);
+  return data.registrations.find((entry) => entry.repo === wanted) || null;
+}
+
+// Slice 2a: record a successful (or already-present) workflow install. Stores
+// only installation metadata — path, pinned ref, ISO timestamp and the PR URL —
+// never a credential. Applied through the same secret guard as registration.
+function recordWorkflowInstalled({
+  profileId,
+  root,
+  repo,
+  pinnedRef,
+  path: workflowPath,
+  prUrl,
+  ciWorkflowName,
+  baseBranch,
+} = {}) {
+  if (!profileId) fail('INVALID_PROFILE', 'profileId is required');
+  const wanted = normalizeRepo(repo);
+  const file = registrationFile({ profileId, root });
+  const data = readRegistry(file, profileId);
+  const record = data.registrations.find((entry) => entry.repo === wanted);
+  if (!record) fail('NOT_FOUND', `no pr-autofix registration for ${wanted}`);
+
+  record.installed_workflow = {
+    path: assertString(workflowPath, 'installed_workflow.path'),
+    pinned_ref: assertString(pinnedRef, 'installed_workflow.pinned_ref'),
+    installed_at: new Date().toISOString(),
+    pr_url: prUrl === undefined || prUrl === null || prUrl === '' ? null : assertString(prUrl, 'installed_workflow.pr_url'),
+  };
+  record.autofix_ref = record.installed_workflow.pinned_ref;
+  if (ciWorkflowName) record.ci_workflow_name = assertString(ciWorkflowName, 'ci_workflow_name');
+  if (baseBranch) record.base_branch = assertString(baseBranch, 'base_branch');
+  record.status = 'workflow_installed';
+  record.updated_at = bumpTimestamp(record.updated_at);
+  assertNoCredentialMaterial(record);
+  writeRegistry(file, data);
+  return record;
+}
+
 module.exports = {
   SCHEMA_VERSION,
   STATUSES,
@@ -230,4 +289,6 @@ module.exports = {
   registerAutofix,
   statusAutofix,
   disableAutofix,
+  getAutofixRegistration,
+  recordWorkflowInstalled,
 };

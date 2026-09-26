@@ -113,3 +113,34 @@ writes.
 - [отклонено (non-goals slice 1)] Workflow install, credential/secret delivery, `credential_refs` /
   `installed_workflow` fields, run-event lifecycle, notifications, reimplementing the fixer —
   slices 2/3.
+
+## pr-autofix service slice 2a — workflow install/update, no credential writes (issue #17)
+
+Design: `docs/PR-AUTOFIX-SERVICE.md` §3. Additive; external write = a PR to the target repo, but
+**no** credential/Actions-secret writes.
+
+- [реализовано] `src/pr-autofix/constants.js` + `installer.js`: given a registration and an injected
+  GitHub capability (`ghFetch`/`ghToken`, injectable so tests never hit the network), builds
+  `.github/workflows/pr-autofix.yml` pinned to an immutable `autofix_ref`, plus
+  `.github/workflows/ci-fix-cleanup.yml` when `features.cleanup`. Opens a PR (base = `base_branch`)
+  or updates the open install PR on `pr-autofix/install`. Idempotent: identical pinned job present
+  → no PR; ref bump → update PR; deterministic single install branch.
+- [реализовано] Trigger shape: dedicated `on: workflow_run` of the target CI workflow
+  (`types: [completed]`), matched by `ci_workflow_name` (default `"CI"`, `workflow_run.workflows`
+  uses the workflow `name:`, not filename). Job guard: failed run + pull_request event + a PR +
+  head branch not `fix/ci-*`. `autofix_ref` must be `vX.Y.Z` or a 40-hex SHA; floating refs
+  (`v1`, `main`, `HEAD`) are rejected (`INVALID_AUTOFIX_REF`). Default pinned ref `v1.2.1`.
+- [реализовано] Tool `engineering_pr_autofix_install` (`{ repo, base_branch?, autofix_ref?,
+  ci_workflow_name? }`), registered in the MCP registry + `provider-manifest.json` with
+  `requiresApproval: true` (external write). On success advances `status` to `workflow_installed`
+  and stores `installed_workflow { path, pinned_ref, installed_at, pr_url }`; `status` reflects it.
+- [реализовано] GitHub capability resolved lazily from host env
+  (`ENGINEERING_GITHUB_TOKEN`/`GITHUB_TOKEN`/`GH_TOKEN`) or an injected factory; the token is never
+  persisted, returned or logged. `assertNoCredentialMaterial` still guards every write.
+- [реализовано] Tests with an in-memory fake GitHub: exactly one PR with the pinned callable job,
+  second install no-op, ref bump updates the open PR, post-merge bump opens a new PR, identical job
+  present → no PR, cleanup workflow, immutable-ref + disabled/unregistered errors, status
+  reflection, no-secret invariant, MCP round-trip + `GITHUB_NOT_CONFIGURED`.
+- [отклонено (non-goals slice 2b)] ZeroCreds credential binding and pushing `OPENROUTER_API_KEY` /
+  `AUTOFIX_PAT` to repo Actions secrets, run-event lifecycle, notifications, `disable` removing the
+  installed workflow.
