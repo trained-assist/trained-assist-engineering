@@ -92,6 +92,23 @@ Two open points, deliberately not guessed here:
 - Idempotent by construction: detect an existing pinned job; "upgrade" = bump the ref; never
   duplicate. Uninstall = remove the file via the same transport.
 
+### 3.1 Installed file: `workflow_run` shape (slice 2a)
+
+The callable only fixes a PR whose CI failed. Rather than editing an arbitrary `ci.yml` (fragile,
+review-hostile), slice 2a installs a **dedicated** `.github/workflows/pr-autofix.yml` that triggers
+on `on: workflow_run` of the target repo's CI workflow (`types: [completed]`) and delegates to
+`trained-assist/pr-autofix/.github/workflows/autofix-callable.yml@<immutable ref>`.
+
+- The watched workflow is matched by its **`name:`** (GitHub's `workflow_run.workflows` semantics,
+  not the filename), configured per registration as `ci_workflow_name` (default `"CI"`).
+- A job-level `if` guards on: the run concluded `failure`, the run came from a `pull_request`, a PR
+  is attached, and the head branch is not already a `fix/ci-*` branch (prevents fix loops).
+- `autofix_ref` must be an **immutable** version tag (`vX.Y.Z`) or a full commit SHA; floating refs
+  (`v1`, `main`, `HEAD`) are rejected. Install/update opens a reviewable PR to the target repo
+  (base = `base_branch`); an identical pinned job is a no-op and a ref bump updates the PR.
+- The install PR references `OPENROUTER_API_KEY` / `AUTOFIX_PAT` by name only. Writing those repo
+  secrets is slice 2b (approval-gated); slice 2a never touches credentials.
+
 ## 4. Lifecycle & observability
 
 - State machine as in §1. Transitions only on verified probes, never on assumption.

@@ -526,12 +526,21 @@ rejected. See `contracts/qa-log.schema.json`.
 registration store + state machine and three tools (`engineering_pr_autofix_register` /
 `engineering_pr_autofix_status` / `engineering_pr_autofix_disable`), keyed by `(USER_ID, repo)`
 under `~/agent-data/pr-autofix/` (host override: `ENGINEERING_PR_AUTOFIX_ROOT`). A registration
-records `{ repo, base_branch, features{fix,cleanup,batch}, autofix_ref, capabilities, status,
-created_at, updated_at }` and moves through `registered → credentials_bound → workflow_installed →
-active → disabled|error`. `register` is an idempotent upsert that never auto-enables; `disable` is
-the kill-switch. Slice 1 writes local state only — no workflow install and no credential/secret
-delivery; raw secrets are rejected (`CREDENTIAL_REJECTED`) and never persisted. See
-`docs/PR-AUTOFIX-SERVICE.md` and `contracts/pr-autofix-registration.schema.json`.
+records `{ repo, base_branch, features{fix,cleanup,batch}, autofix_ref, capabilities,
+ci_workflow_name, installed_workflow, status, created_at, updated_at }` and moves through
+`registered → credentials_bound → workflow_installed → active → disabled|error`. `register` is an
+idempotent upsert that never auto-enables; `disable` is the kill-switch. Raw secrets are rejected
+(`CREDENTIAL_REJECTED`) and never persisted. See `docs/PR-AUTOFIX-SERVICE.md` and
+`contracts/pr-autofix-registration.schema.json`.
+
+Slice 2a adds `engineering_pr_autofix_install` (external write, approval required): given a
+registration it builds the dedicated `.github/workflows/pr-autofix.yml` (plus
+`.github/workflows/ci-fix-cleanup.yml` when `features.cleanup`) pinned to an immutable
+`autofix_ref`, and opens — or updates — a reviewable PR to the target repo's `base_branch`. The
+installed job triggers on `workflow_run` of the repo CI workflow named by `ci_workflow_name`
+(default `"CI"`), only for failed pull-request runs that are not already `fix/ci-*`. Install is
+idempotent (identical pinned job → no PR; ref bump → update PR) and never writes credentials or
+repository Actions secrets — that is the separate, approval-gated slice 2b.
 
 ---
 

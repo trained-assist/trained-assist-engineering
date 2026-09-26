@@ -54,6 +54,7 @@
             "additionalProperties": false
           },
           "autofix_ref": { "type": "string" },
+          "ci_workflow_name": { "type": "string" },
           "capabilities": {
             "type": "object",
             "additionalProperties": { "type": "string" }
@@ -63,6 +64,23 @@
       "allowedTriggers": ["user"],
       "effect": "write",
       "requiresApproval": false,
+      "retrySafety": "idempotent"
+    },
+    {
+      "name": "engineering_pr_autofix_install",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo"],
+        "properties": {
+          "repo": { "type": "string" },
+          "base_branch": { "type": "string" },
+          "autofix_ref": { "type": "string" },
+          "ci_workflow_name": { "type": "string" }
+        }
+      },
+      "allowedTriggers": ["user"],
+      "effect": "write",
+      "requiresApproval": true,
       "retrySafety": "idempotent"
     },
     {

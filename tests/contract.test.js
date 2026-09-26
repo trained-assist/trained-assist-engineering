@@ -38,6 +38,7 @@ test('every registry tool has a name, description, input schema and handler', ()
     'qa_log_lookup',
     'qa_log_list',
     'engineering_pr_autofix_register',
+    'engineering_pr_autofix_install',
     'engineering_pr_autofix_status',
     'engineering_pr_autofix_disable',
   ]) {
